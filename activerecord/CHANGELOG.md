@@ -1,3 +1,7 @@
+*   Remove deprecated `Rails.application.config.active_record.suppress_multiple_database_warning`.
+
+    *Rafael Mendonça França*
+
 *   In cases where MySQL returns `warning_count` greater than zero, but returns no warnings when
     the `SHOW WARNINGS` query is executed, `ActiveRecord.db_warnings_action` proc will still be
     called with a generic warning message rather than silently ignoring the warning(s).
