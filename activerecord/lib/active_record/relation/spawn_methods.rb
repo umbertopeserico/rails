@@ -41,8 +41,6 @@ module ActiveRecord
     end
 
     def merge!(other, *rest) # :nodoc:
-      options = rest.extract_options!
-
       if other.is_a?(Hash)
         Relation::HashMerger.new(self, other).merge
       elsif other.is_a?(Relation)
