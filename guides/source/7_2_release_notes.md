@@ -185,7 +185,13 @@ Please refer to the [Changelog][active-storage] for detailed changes.
 
 *   Remove deprecated `config.active_storage.silence_invalid_content_types_warning`.
 
+*   Remove deprecated support for the pre-Ruby 2.4 behavior of `to_time` returning a `Time` object with local timezone.
+
 ### Deprecations
+
+*   Deprecate `config.active_support.to_time_preserves_timezone`.
+
+*   Deprecate `DateAndTime::Compatibility.preserve_timezone`.
 
 ### Notable changes
 
