@@ -31,17 +31,6 @@ class ::MySanitizerVendor < ::Rails::HTML::Sanitizer
   end
 end
 
-class MyLogRecorder < Logger
-  def initialize
-    @io = StringIO.new
-    super(@io)
-  end
-
-  def recording
-    @io.string
-  end
-end
-
 module ApplicationTests
   class ConfigurationTest < ActiveSupport::TestCase
     include ActiveSupport::Testing::Isolation
@@ -79,7 +68,6 @@ module ApplicationTests
     def setup
       build_app
       suppress_default_config
-      suppress_sqlite3_warning
     end
 
     def teardown
@@ -94,14 +82,6 @@ module ApplicationTests
     def restore_default_config
       FileUtils.rm_rf("#{app_path}/config/environments")
       FileUtils.mv("#{app_path}/config/__environments__", "#{app_path}/config/environments")
-    end
-
-    def suppress_sqlite3_warning
-      add_to_config "config.active_record.sqlite3_production_warning = false"
-    end
-
-    def restore_sqlite3_warning
-      remove_from_config ".*config.active_record.sqlite3_production_warning.*\n"
     end
 
     test "Rails.env does not set the RAILS_ENV environment variable which would leak out into rake tasks" do
@@ -1949,6 +1929,31 @@ module ApplicationTests
       assert_equal Logger::DEBUG, Rails.logger.level
     end
 
+    test "config.log_level does not override the level of the broadcast with the default value" do
+      add_to_config <<-RUBY
+        stdout = Logger.new(STDOUT, level: Logger::INFO)
+        stderr = Logger.new(STDERR, level: Logger::ERROR)
+        config.logger = ActiveSupport::BroadcastLogger.new(stdout, stderr)
+      RUBY
+
+      app "development"
+
+      assert_equal([Logger::INFO, Logger::ERROR], Rails.logger.broadcasts.map(&:level))
+    end
+
+    test "config.log_level overrides the level of the broadcast when a custom value is set" do
+      add_to_config <<-RUBY
+        stdout = Logger.new(STDOUT)
+        stderr = Logger.new(STDERR)
+        config.logger = ActiveSupport::BroadcastLogger.new(stdout, stderr)
+        config.log_level = :warn
+      RUBY
+
+      app "development"
+
+      assert_equal([Logger::WARN, Logger::WARN], Rails.logger.broadcasts.map(&:level))
+    end
+
     test "config.logger when logger is already a Broadcast Logger" do
       logger = ActiveSupport::BroadcastLogger.new
 
@@ -3079,7 +3084,7 @@ module ApplicationTests
     test "active record job queue is set" do
       app "development"
 
-      assert_equal ActiveSupport::InheritableOptions.new(destroy: :active_record_destroy), ActiveRecord.queues
+      assert_equal({}, ActiveRecord.queues)
     end
 
     test "destroy association async job should be loaded in configs" do
@@ -4014,57 +4019,6 @@ module ApplicationTests
       app "development"
 
       assert_equal false, Rails.application.env_config["action_dispatch.log_rescued_responses"]
-    end
-
-    test "logs a warning when running SQLite3 in production" do
-      restore_sqlite3_warning
-      app_file "config/initializers/active_record.rb", <<~RUBY
-        ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: ":memory:")
-      RUBY
-      add_to_config "config.logger = MyLogRecorder.new"
-
-      app "production"
-
-      assert_match(/You are running SQLite in production, this is generally not recommended/, Rails.logger.recording)
-    end
-
-    test "doesn't log a warning when running SQLite3 in production and sqlite3_production_warning=false" do
-      app_file "config/initializers/active_record.rb", <<~RUBY
-        ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: ":memory:")
-      RUBY
-      add_to_config "config.logger = MyLogRecorder.new"
-
-      app "production"
-
-      assert_no_match(/You are running SQLite in production, this is generally not recommended/, Rails.logger.recording)
-    end
-
-    test "doesn't log a warning when running MySQL in production" do
-      restore_sqlite3_warning
-      original_configurations = ActiveRecord::Base.configurations
-      ActiveRecord::Base.configurations = { production: { db1: { adapter: "mysql2" } } }
-      app_file "config/initializers/active_record.rb", <<~RUBY
-        ActiveRecord::Base.establish_connection(adapter: "mysql2")
-      RUBY
-      add_to_config "config.logger = MyLogRecorder.new"
-
-      app "production"
-
-      assert_no_match(/You are running SQLite in production, this is generally not recommended/, Rails.logger.recording)
-    ensure
-      ActiveRecord::Base.configurations = original_configurations
-    end
-
-    test "doesn't log a warning when running SQLite3 in development" do
-      restore_sqlite3_warning
-      app_file "config/initializers/active_record.rb", <<~RUBY
-        ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: ":memory:")
-      RUBY
-      add_to_config "config.logger = MyLogRecorder.new"
-
-      app "development"
-
-      assert_no_match(/You are running SQLite in production, this is generally not recommended/, Rails.logger.recording)
     end
 
     test "app starts with LocalCache middleware" do

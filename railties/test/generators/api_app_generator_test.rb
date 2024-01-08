@@ -180,10 +180,10 @@ class ApiAppGeneratorTest < Rails::Generators::TestCase
          tmp/cache/assets
          public/404.html
          public/422.html
+         public/426.html
          public/500.html
-         public/apple-touch-icon-precomposed.png
-         public/apple-touch-icon.png
-         public/favicon.ico
+         public/icon.png
+         public/icon.svg
       )
     end
 end

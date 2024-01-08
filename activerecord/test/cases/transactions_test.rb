@@ -31,6 +31,14 @@ class TransactionTest < ActiveRecord::TestCase
     assert_equal title_change, topic.changes["title"]
   end
 
+  def test_transaction_does_not_apply_default_scope
+    # Regression test for https://github.com/rails/rails/issues/50368
+    topic = topics(:fifth)
+    Topic.where.not(id: topic.id).transaction do
+      assert_not_nil Topic.find(topic.id)
+    end
+  end
+
   if !in_memory_db?
     def test_rollback_dirty_changes_even_with_raise_during_rollback_removes_from_pool
       topic = topics(:fifth)
@@ -1279,13 +1287,13 @@ class TransactionTest < ActiveRecord::TestCase
   end
 
   def test_unprepared_statement_materializes_transaction
-    assert_sql(/BEGIN/i, /COMMIT/i) do
+    assert_queries_match(/BEGIN|COMMIT/i, include_schema: true) do
       Topic.transaction { Topic.where("1=1").first }
     end
   end
 
   def test_nested_transactions_skip_excess_savepoints
-    capture_sql do
+    actual_queries = capture_sql(include_schema: true) do
       # RealTransaction (begin..commit)
       Topic.transaction(requires_new: true) do
         # ResetParentTransaction (no queries)
@@ -1302,8 +1310,6 @@ class TransactionTest < ActiveRecord::TestCase
         Topic.delete_all
       end
     end
-
-    actual_queries = ActiveRecord::SQLCounter.log_all
 
     expected_queries = [
       /BEGIN/i,
@@ -1324,7 +1330,7 @@ class TransactionTest < ActiveRecord::TestCase
   def test_nested_transactions_after_disable_lazy_transactions
     Topic.connection.disable_lazy_transactions!
 
-    capture_sql do
+    actual_queries = capture_sql(include_schema: true) do
       # RealTransaction (begin..commit)
       Topic.transaction(requires_new: true) do
         # ResetParentTransaction (no queries)
@@ -1341,8 +1347,6 @@ class TransactionTest < ActiveRecord::TestCase
         Topic.delete_all
       end
     end
-
-    actual_queries = ActiveRecord::SQLCounter.log_all
 
     expected_queries = [
       /BEGIN/i,
@@ -1363,7 +1367,7 @@ class TransactionTest < ActiveRecord::TestCase
     def test_prepared_statement_materializes_transaction
       Topic.first
 
-      assert_sql(/BEGIN/i, /COMMIT/i) do
+      assert_queries_match(/BEGIN|COMMIT/i, include_schema: true) do
         Topic.transaction { Topic.first }
       end
     end
@@ -1386,7 +1390,7 @@ class TransactionTest < ActiveRecord::TestCase
   end
 
   def test_accessing_raw_connection_materializes_transaction
-    assert_sql(/BEGIN/i, /COMMIT/i) do
+    assert_queries_match(/BEGIN|COMMIT/i, include_schema: true) do
       Topic.transaction { Topic.connection.raw_connection }
     end
   end
@@ -1394,7 +1398,7 @@ class TransactionTest < ActiveRecord::TestCase
   def test_accessing_raw_connection_disables_lazy_transactions
     Topic.connection.raw_connection
 
-    assert_sql(/BEGIN/i, /COMMIT/i) do
+    assert_queries_match(/BEGIN|COMMIT/i, include_schema: true) do
       Topic.transaction { }
     end
   end
@@ -1410,7 +1414,7 @@ class TransactionTest < ActiveRecord::TestCase
   end
 
   def test_transactions_can_be_manually_materialized
-    assert_sql(/BEGIN/i, /COMMIT/i) do
+    assert_queries_match(/BEGIN|COMMIT/i, include_schema: true) do
       Topic.transaction do
         Topic.connection.materialize_transactions
       end

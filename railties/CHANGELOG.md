@@ -1,3 +1,65 @@
+*   Use `oven-sh/setup-bun` in GitHub CI when generating an app with bun
+
+    *TangRufus*
+
+*   Disable `pidfile` generation in production environment.
+
+    *Hans Schnedlitz*
+
+*   Set `config.action_view.annotate_rendered_view_with_filenames` to `true` in the
+    development environment.
+
+    *Adrian Marin*
+
+*   Support `BACKTRACE` ENV variable to turn off backtrace cleaning.
+
+    Useful for debugging framework code:
+
+    ```sh
+    BACKTRACE=1 ./bin/rails server
+    ```
+
+    *Alex Ghiculescu*
+
+*   Raise `ArgumentError` when reading `config.x.something` with arguments
+
+    ```ruby
+    config.x.this_works.this_raises true # raises ArgumentError
+    ```
+
+    *Sean Doyle*
+
+*   Add default PWA files for manifest and service-worker that are served from `app/views/pwa` and can be dynamically rendered through erb. Mount these files explicitly at the root with default routes in the generated routes file.
+
+    *DHH*
+
+*   Updated system tests to now use headless Chrome by default for the new applications.
+
+    *DHH*
+
+*   Add GitHub CI files for dependabot, brakeman, rubocop, and running tests by default. Can be skipped with --skip-ci.
+
+    *DHH*
+
+*   Add brakeman gem by default for static analysis of security vulnerabilities. Allow skipping with --skip-brakeman option.
+
+    *vipulnsward*
+
+*   Add RuboCop with rules from rubocop-rails-omakase by default. Skip with --skip-rubocop.
+
+    *DHH* and *zzak*
+
+*   Use `bin/rails runner --skip-executor` option to not wrap the runner script
+    with an Executor.
+
+    *Ben Sheldon*
+
+*   Fix isolated engines to take `ActiveRecord::Base.table_name_prefix` into consideration.
+    This will allow for engine defined models, such as inside Active Storage, to respect
+    Active Record table name prefix configuration.
+
+    *Chedli Bourguiba*
+
 *   Fix running `db:system:change` when app has no Dockerfile.
 
     *Hartley McGuire*

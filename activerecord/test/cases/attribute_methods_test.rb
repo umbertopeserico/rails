@@ -1034,11 +1034,16 @@ class AttributeMethodsTest < ActiveRecord::TestCase
 
     topic = topic_class.new(title: "New topic")
     assert_equal("New topic", topic.subject_to_be_undefined)
+    assert_equal true, topic_class.method_defined?(:subject_to_be_undefined)
     topic_class.undefine_attribute_methods
+    assert_equal false, topic_class.method_defined?(:subject_to_be_undefined)
 
-    assert_raises(NoMethodError, match: /undefined method `subject_to_be_undefined'/) do
-      topic.subject_to_be_undefined
-    end
+    topic.subject_to_be_undefined
+    assert_equal true, topic_class.method_defined?(:subject_to_be_undefined)
+
+    topic_class.undefine_attribute_methods
+    assert_equal true, topic.respond_to?(:subject_to_be_undefined)
+    assert_equal true, topic_class.method_defined?(:subject_to_be_undefined)
   end
 
   test "#define_attribute_methods brings back undefined aliases" do
@@ -1052,11 +1057,11 @@ class AttributeMethodsTest < ActiveRecord::TestCase
     assert_equal("New topic", topic.title_alias_to_be_undefined)
     topic_class.undefine_attribute_methods
 
-    assert_not_respond_to topic, :title_alias_to_be_undefined
+    assert_equal false, topic_class.method_defined?(:title_alias_to_be_undefined)
 
     topic_class.define_attribute_methods
 
-    assert_respond_to topic, :title_alias_to_be_undefined
+    assert_equal true, topic_class.method_defined?(:title_alias_to_be_undefined)
     assert_equal "New topic", topic.title_alias_to_be_undefined
   end
 
@@ -1365,6 +1370,22 @@ class AttributeMethodsTest < ActiveRecord::TestCase
       class_with_enum_method_target.new
     end
     assert_equal message, error.message
+  end
+
+  test "#alias_attribute method on a STI class is available on subclasses" do
+    superclass = Class.new(ActiveRecord::Base) do
+      self.table_name = "comments"
+      alias_attribute :text, :body
+    end
+
+    subclass = Class.new(superclass) do
+      self.abstract_class = true
+    end
+
+    subsubclass = Class.new(subclass)
+
+    comment = subsubclass.build(body: "Text")
+    assert_equal "Text", comment.text
   end
 
   test "#alias_attribute with an association method raises an error" do

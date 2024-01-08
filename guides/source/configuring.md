@@ -200,20 +200,12 @@ Sets the host for the assets. Useful when CDNs are used for hosting assets, or w
 
 #### `config.assume_ssl`
 
-Makes application believe that all requests are arriving over SSL. This is useful when proxying through a load balancer that terminates SSL, the forwarded request will appear as though its HTTP instead of HTTPS to the application. This makes redirects and cookie security target HTTP instead of HTTPS. This middleware makes the server assume that the proxy already terminated SSL, and that the request really is HTTPS.
+Makes application believe that all requests are arriving over SSL. This is useful when proxying through a load balancer that terminates SSL, the forwarded request will appear as though it's HTTP instead of HTTPS to the application. This makes redirects and cookie security target HTTP instead of HTTPS. This middleware makes the server assume that the proxy already terminated SSL, and that the request really is HTTPS.
 
 #### `config.autoflush_log`
 
 Enables writing log file output immediately instead of buffering. Defaults to
 `true`.
-
-#### `config.autoload_once_paths`
-
-Accepts an array of paths from which Rails will autoload constants that won't be wiped per request. Relevant if reloading is enabled, which it is by default in the `development` environment. Otherwise, all autoloading happens only once. All elements of this array must also be in `autoload_paths`. Default is an empty array.
-
-#### `config.autoload_paths`
-
-Accepts an array of paths from which Rails will autoload constants. Default is an empty array. Since [Rails 6](upgrading_ruby_on_rails.html#autoloading), it is not recommended to adjust this. See [Autoloading and Reloading Constants](autoloading_and_reloading_constants.html#autoload-paths).
 
 #### `config.autoload_lib(ignore:)`
 
@@ -232,6 +224,14 @@ Please, see more details in the [autoloading guide](autoloading_and_reloading_co
 The method `config.autoload_lib_once` is similar to `config.autoload_lib`, except that it adds `lib` to `config.autoload_once_paths` instead.
 
 By calling `config.autoload_lib_once`, classes and modules in `lib` can be autoloaded, even from application initializers, but won't be reloaded.
+
+#### `config.autoload_once_paths`
+
+Accepts an array of paths from which Rails will autoload constants that won't be wiped per request. Relevant if reloading is enabled, which it is by default in the `development` environment. Otherwise, all autoloading happens only once. All elements of this array must also be in `autoload_paths`. Default is an empty array.
+
+#### `config.autoload_paths`
+
+Accepts an array of paths from which Rails will autoload constants. Default is an empty array. Since [Rails 6](upgrading_ruby_on_rails.html#autoloading), it is not recommended to adjust this. See [Autoloading and Reloading Constants](autoloading_and_reloading_constants.html#autoload-paths).
 
 #### `config.beginning_of_week`
 
@@ -307,10 +307,6 @@ Sets the format used in responses when errors occur in the development environme
 #### `config.disable_sandbox`
 
 Controls whether or not someone can start a console in sandbox mode. This is helpful to avoid a long running session of sandbox console, that could lead a database server to run out of memory. Defaults to `false`.
-
-#### `config.sandbox_by_default`
-
-When `true`, rails console starts in sandbox mode. To start rails console in non-sandbox mode, `--no-sandbox` must be specified. This is helpful to avoid accidental writing to the production database. Defaults to `false`.
 
 #### `config.dom_testing_default_html_version`
 
@@ -537,6 +533,10 @@ Enables or disables reloading of classes only when tracked files change. By defa
 
 Causes the app to not boot if a master key hasn't been made available through `ENV["RAILS_MASTER_KEY"]` or the `config/master.key` file.
 
+#### `config.sandbox_by_default`
+
+When `true`, rails console starts in sandbox mode. To start rails console in non-sandbox mode, `--no-sandbox` must be specified. This is helpful to avoid accidental writing to the production database. Defaults to `false`.
+
 #### `config.secret_key_base`
 
 The fallback for specifying the input secret for an application's key generator.
@@ -695,6 +695,7 @@ The full set of methods that can be used in this block are as follows:
 * `scaffold_controller` different from `resource_controller`, defines which generator to use for generating a _scaffolded_ controller when using `bin/rails generate scaffold`. Defaults to `:scaffold_controller`.
 * `test_framework` defines which test framework to use. Defaults to `false` and will use minitest by default.
 * `template_engine` defines which template engine to use, such as ERB or Haml. Defaults to `:erb`.
+* `apply_rubocop_autocorrect_after_generate!` applies RuboCop's autocorrect feature after Rails generators are run.
 
 ### Configuring Middleware
 
@@ -838,7 +839,7 @@ Allows the method to be overridden if `params[:_method]` is set. This is the mid
 
 #### `Rack::Head`
 
-Converts HEAD requests to GET requests and serves them as so.
+Returns an empty body for all HEAD requests. It leaves all other requests unchanged.
 
 #### Adding Custom Middleware
 
@@ -1047,7 +1048,7 @@ Controls whether migrations are numbered with serial integers or with timestamps
 
 #### `config.active_record.db_warnings_action`
 
-Controls the action to be taken when a SQL query produces a warning. The following options are available:
+Controls the action to be taken when an SQL query produces a warning. The following options are available:
 
   * `:ignore` - Database warnings will be ignored. This is the default.
 
@@ -1580,6 +1581,18 @@ The default value depends on the `config.load_defaults` target version:
 | (original)            | `true`               |
 | 7.1                   | `false`              |
 
+#### `config.active_record.protocol_adapters`
+
+When using a URL to configure the database connection, this option provides a mapping from the protocol to the underlying
+database adapter. For example, this means the environment can specify `DATABASE_URL=mysql://localhost/database` and Rails will map
+`mysql` to the `mysql2` adapter, but the application can also override these mappings:
+
+```ruby
+config.active_record.protocol_adapters.mysql = "trilogy"
+```
+
+If no mapping is found, the protocol is used as the adapter name.
+
 ### Configuring Action Controller
 
 `config.action_controller` includes a number of configuration settings:
@@ -1697,7 +1710,14 @@ Raises an `AbstractController::ActionNotFound` when the action specified in call
 
 #### `config.action_controller.raise_on_open_redirects`
 
-Raises an `ActionController::Redirecting::UnsafeRedirectError` when an unpermitted open redirect occurs.
+Protect an application from unintentionally redirecting to an external host
+(also known as an "open redirect") by making external redirects opt-in.
+
+When this configuration is set to `true`, an
+`ActionController::Redirecting::UnsafeRedirectError` will be raised when a URL
+with an external host is passed to [redirect_to][]. If an open redirect should
+be allowed, then `allow_other_host: true` can be added to the call to
+`redirect_to`.
 
 The default value depends on the `config.load_defaults` target version:
 
@@ -1705,6 +1725,8 @@ The default value depends on the `config.load_defaults` target version:
 | --------------------- | -------------------- |
 | (original)            | `false`              |
 | 7.0                   | `true`               |
+
+[redirect_to]: https://api.rubyonrails.org/classes/ActionController/Redirecting.html#method-i-redirect_to
 
 #### `config.action_controller.log_query_tags_around_actions`
 
@@ -1713,8 +1735,19 @@ updated via an `around_filter`. The default value is `true`.
 
 #### `config.action_controller.wrap_parameters_by_default`
 
-Configures the [`ParamsWrapper`](https://api.rubyonrails.org/classes/ActionController/ParamsWrapper.html) to wrap json
-request by default.
+Before Rails 7.0, new applications were generated with an initializer named
+`wrap_parameters.rb` that enabled parameter wrapping in `ActionController::Base`
+for JSON requests.
+
+Setting this configuration value to `true` has the same behavior as the
+initializer, allowing applications to remove the initializer if they do not wish
+to customize parameter wrapping behavior.
+
+Regardless of this value, applications can continue to customize the parameter
+wrapping behavior as before in an initializer or per controller.
+
+See [`ParamsWrapper`][params_wrapper] for more information on parameter
+wrapping.
 
 The default value depends on the `config.load_defaults` target version:
 
@@ -1722,6 +1755,8 @@ The default value depends on the `config.load_defaults` target version:
 | --------------------- | -------------------- |
 | (original)            | `false`              |
 | 7.0                   | `true`               |
+
+[params_wrapper]: https://api.rubyonrails.org/classes/ActionController/ParamsWrapper.html
 
 #### `ActionController::Base.wrap_parameters`
 
@@ -1853,16 +1888,25 @@ information. It defaults to `true`.
 
 #### `config.action_dispatch.rescue_responses`
 
-Configures what exceptions are assigned to an HTTP status. It accepts a hash and you can specify pairs of exception/status. By default, this is defined as:
+Configures what exceptions are assigned to an HTTP status. It accepts a hash and you can specify pairs of exception/status.
 
 ```ruby
-config.action_dispatch.rescue_responses = {
+# It's good to use #[]= or #merge! to respect the default values
+config.action_dispatch.rescue_responses['MyAuthenticationError'] = :unauthorized
+```
+
+Use `ActionDispatch::ExceptionWrapper.rescue_responses` to observe the configuration. By default, it is defined as:
+
+```ruby
+{
   'ActionController::RoutingError' => :not_found,
   'AbstractController::ActionNotFound' => :not_found,
   'ActionController::MethodNotAllowed' => :method_not_allowed,
   'ActionController::UnknownHttpMethod' => :method_not_allowed,
   'ActionController::NotImplemented' => :not_implemented,
   'ActionController::UnknownFormat' => :not_acceptable,
+  'ActionDispatch::Http::MimeNegotiation::InvalidType' => :not_acceptable,
+  'ActionController::MissingExactTemplate' => :not_acceptable,
   'ActionController::InvalidAuthenticityToken' => :unprocessable_entity,
   'ActionController::InvalidCrossOriginRequest' => :unprocessable_entity,
   'ActionDispatch::Http::Parameters::ParseError' => :bad_request,
@@ -1954,7 +1998,7 @@ Accepts a logger conforming to the interface of Log4r or the default Ruby Logger
 
 #### `config.action_view.erb_trim_mode`
 
-Gives the trim mode to be used by ERB. It defaults to `'-'`, which turns on trimming of tail spaces and newline when using `<%= -%>` or `<%= =%>`. See the [Erubis documentation](http://www.kuwata-lab.com/erubis/users-guide.06.html#topics-trimspaces) for more information.
+Controls if certain ERB syntax should trim. It defaults to `'-'`, which turns on trimming of tail spaces and newline when using `<%= -%>` or `<%= =%>`. Setting this to anything else will turn off trimming support.
 
 #### `config.action_view.frozen_string_literal`
 
@@ -2047,7 +2091,21 @@ The default value depends on the `config.load_defaults` target version:
 
 #### `config.action_view.button_to_generates_button_tag`
 
-Determines whether `button_to` will render `<button>` element, regardless of whether or not the content is passed as the first argument or as a block.
+When `false`, `button_to` will render a `<button>` or an `<input>` inside a
+`<form>` depending on how content is passed (`<form>` omitted for brevity):
+
+```erb
+<%= button_to "Content", "/" %>
+# => <input type="submit" value="Content">
+
+<%= button_to "/" do %>
+  Content
+<% end %>
+# => <button type="submit">Content</button>
+```
+
+Setting this value to `true` makes `button_to` generate a `<button>` tag inside
+the `<form>` in both cases.
 
 The default value depends on the `config.load_defaults` target version:
 
@@ -2058,7 +2116,8 @@ The default value depends on the `config.load_defaults` target version:
 
 #### `config.action_view.apply_stylesheet_media_default`
 
-Determines whether `stylesheet_link_tag` will render `screen` as the default value for the attribute `media` when it's not provided.
+Determines whether `stylesheet_link_tag` will render `screen` as the default
+value for the `media` attribute when it's not provided.
 
 The default value depends on the `config.load_defaults` target version:
 
@@ -2162,8 +2221,10 @@ Additionally, it is possible to pass any [configuration option `Mail::SMTP` resp
 
 #### `config.action_mailer.smtp_timeout`
 
-Allows to configure both the `:open_timeout` and `:read_timeout`
-values for `:smtp` delivery method.
+Prior to version 2.8.0, the `mail` gem did not configure any default timeouts
+for its SMTP requests. This configuration enables applications to configure
+default values for both `:open_timeout` and `:read_timeout` in the `mail` gem so
+that requests do not end up stuck indefinitely.
 
 The default value depends on the `config.load_defaults` target version:
 
@@ -2174,10 +2235,17 @@ The default value depends on the `config.load_defaults` target version:
 
 #### `config.action_mailer.sendmail_settings`
 
-Allows detailed configuration for the `sendmail` delivery method. It accepts a hash of options, which can include any of these options:
+Allows detailed configuration for the `:sendmail` delivery method. It accepts a hash of options, which can include any of these options:
 
 * `:location` - The location of the sendmail executable. Defaults to `/usr/sbin/sendmail`.
 * `:arguments` - The command line arguments. Defaults to `%w[ -i ]`.
+
+#### `config.action_mailer.file_settings`
+
+Configures the `:file` delivery method. It accepts a hash of options, which can include:
+
+* `:location` - The location where files are saved. Defaults to `"#{Rails.root}/tmp/mails"`.
+* `:extension` - The file extension. Defaults to the empty string.
 
 #### `config.action_mailer.raise_delivery_errors`
 
@@ -2372,7 +2440,7 @@ Alternatively, you can specify any serializer object that responds to `dump` and
 `load` methods. For example:
 
 ```ruby
-config.active_job.message_serializer = YAML
+config.active_support.message_serializer = YAML
 ```
 
 The default value depends on the `config.load_defaults` target version:
@@ -2426,15 +2494,25 @@ The default value depends on the `config.load_defaults` target version:
 
 #### `config.active_support.deprecation`
 
-Configures the behavior of deprecation warnings. The options are `:raise`, `:stderr`, `:log`, `:notify`, and `:silence`.
+Configures the behavior of deprecation warnings. See
+[`Deprecation::Behavior`][deprecation_behavior] for a description of the
+available options.
 
-In the default generated `config/environments` files, this is set to `:log` for development and `:stderr` for test, and it is omitted for production in favor of [`config.active_support.report_deprecations`](#config-active-support-report-deprecations).
+In the default generated `config/environments` files, this is set to `:log` for
+development and `:stderr` for test, and it is omitted for production in favor of
+[`config.active_support.report_deprecations`](#config-active-support-report-deprecations).
+
+[deprecation_behavior]: https://api.rubyonrails.org/classes/ActiveSupport/Deprecation/Behavior.html#method-i-behavior-3D
 
 #### `config.active_support.disallowed_deprecation`
 
-Configures the behavior of disallowed deprecation warnings. The options are `:raise`, `:stderr`, `:log`, `:notify`, and `:silence`.
+Configures the behavior of disallowed deprecation warnings. See
+[`Deprecation::Behavior`][deprecation_behavior] for a description of the
+available options.
 
-In the default generated `config/environments` files, this is set to `:raise` for both development and test, and it is omitted for production in favor of [`config.active_support.report_deprecations`](#config-active-support-report-deprecations).
+In the default generated `config/environments` files, this is set to `:raise`
+for both development and test, and it is omitted for production in favor of
+[`config.active_support.report_deprecations`](#config-active-support-report-deprecations).
 
 #### `config.active_support.disallowed_deprecation_warnings`
 
@@ -2750,11 +2828,17 @@ config.active_storage.logger = ActiveSupport::Logger.new(STDOUT)
 
 Determines the default expiry of URLs generated by:
 
-* `ActiveStorage::Blob#url`
-* `ActiveStorage::Blob#service_url_for_direct_upload`
-* `ActiveStorage::Variant#url`
+* [`ActiveStorage::Blob#url`][]
+* [`ActiveStorage::Blob#service_url_for_direct_upload`][]
+* [`ActiveStorage::Preview#url`][]
+* [`ActiveStorage::Variant#url`][]
 
 The default is 5 minutes.
+
+[`ActiveStorage::Blob#url`]: https://api.rubyonrails.org/classes/ActiveStorage/Blob.html#method-i-url
+[`ActiveStorage::Blob#service_url_for_direct_upload`]: https://api.rubyonrails.org/classes/ActiveStorage/Blob.html#method-i-service_url_for_direct_upload
+[`ActiveStorage::Preview#url`]: https://api.rubyonrails.org/classes/ActiveStorage/Preview.html#method-i-url
+[`ActiveStorage::Variant#url`]: https://api.rubyonrails.org/classes/ActiveStorage/Variant.html#method-i-url
 
 #### `config.active_storage.urls_expire_in`
 
@@ -2884,6 +2968,11 @@ development:
 
 The `config/database.yml` file can contain ERB tags `<%= %>`. Anything in the tags will be evaluated as Ruby code. You can use this to pull out data from an environment variable or to perform calculations to generate the needed connection information.
 
+When using a `ENV['DATABASE_URL']` or a `url` key in your `config/database.yml`
+file, Rails allows mapping the protocol in the URL to a database adapter that
+can be configured from within the application. This allows the adapter to be
+configured without modifying the URL set in the deployment environment. See:
+[`config.active_record.protocol_adapters`](#config-active-record-protocol-adapters).
 
 TIP: You don't have to update the database configurations manually. If you look at the options of the application generator, you will see that one of the options is named `--database`. This option allows you to choose an adapter from a list of the most used relational databases. You can even run the generator repeatedly: `cd .. && rails new blog --database=mysql`. When you confirm the overwriting of the `config/database.yml` file, your application will be configured for MySQL instead of SQLite. Detailed examples of the common database connections are below.
 
@@ -3465,7 +3554,7 @@ Below is a comprehensive list of all the initializers found in Rails in the orde
 Database Pooling
 ----------------
 
-Active Record database connections are managed by `ActiveRecord::ConnectionAdapters::ConnectionPool` which ensures that a connection pool synchronizes the amount of thread access to a limited number of database connections. This limit defaults to 5 and can be configured in `database.yml`.
+Active Record database connections are managed by [`ActiveRecord::ConnectionAdapters::ConnectionPool`][] which ensures that a connection pool synchronizes the amount of thread access to a limited number of database connections. This limit defaults to 5 and can be configured in `database.yml`.
 
 ```yaml
 development:
@@ -3492,6 +3581,7 @@ connection pool by incrementing the `pool` option in `database.yml`
 
 NOTE. If you are running in a multi-threaded environment, there could be a chance that several threads may be accessing multiple connections simultaneously. So depending on your current request load, you could very well have multiple threads contending for a limited number of connections.
 
+[`ActiveRecord::ConnectionAdapters::ConnectionPool`]: https://api.rubyonrails.org/classes/ActiveRecord/ConnectionAdapters/ConnectionPool.html
 
 Custom Configuration
 --------------------

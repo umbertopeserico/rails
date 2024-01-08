@@ -1,3 +1,28 @@
+*   Add the `nonce: true` option for `stylesheet_link_tag` helper to support automatic nonce generation for Content Security Policy.
+    Works the same way as `javascript_include_tag nonce: true` does.
+
+    *Akhil G Krishnan*, *AJ Esler*
+
+*   Parse `ActionView::TestCase#rendered` HTML content as `Nokogiri::XML::DocumentFragment` instead of `Nokogiri::XML::Document`
+
+    *Sean Doyle*
+
+*   Rename `ActionView::TestCase::Behavior::{Content,RenderedViewContent}`
+
+    *Sean Doyle*
+
+*   Raise `ArgumentError` when `nil` is passed as `model:` argument value to the `form_with` method.
+
+    *Collin Jilbert*
+
+*   Alias `field_set_tag` helper to `fieldset_tag` to match `<fieldset>` element
+
+    *Sean Doyle*
+
+*   Deprecate passing content to void elements when using `tag.br` type tag builders.
+
+    *Hartley McGuire*
+
 *   Fix the `number_to_human_size` view helper to correctly work with negative numbers.
 
     *Earlopain*

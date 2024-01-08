@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "rails/ruby_version_check"
-
 require "pathname"
 
 require "active_support"
@@ -29,11 +27,15 @@ module Rails
   extend ActiveSupport::Autoload
   extend ActiveSupport::Benchmarkable
 
-  autoload :HealthController
   autoload :Info
   autoload :InfoController
   autoload :MailersController
   autoload :WelcomeController
+
+  eager_autoload do
+    autoload :HealthController
+    autoload :PwaController
+  end
 
   class << self
     @application = @app_class = nil

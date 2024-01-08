@@ -431,16 +431,15 @@ module ActionDispatch
       end
 
       # Delegate unhandled messages to the current session instance.
-      def method_missing(method, *args, &block)
+      def method_missing(method, ...)
         if integration_session.respond_to?(method)
-          integration_session.public_send(method, *args, &block).tap do
+          integration_session.public_send(method, ...).tap do
             copy_session_variables!
           end
         else
           super
         end
       end
-      ruby2_keywords(:method_missing)
     end
   end
 
@@ -657,6 +656,7 @@ module ActionDispatch
       included do
         include ActionDispatch::Routing::UrlFor
         include UrlOptions # don't let UrlFor override the url_options method
+        include ActionDispatch::Assertions::RoutingAssertions::WithIntegrationRouting
         ActiveSupport.run_load_hooks(:action_dispatch_integration_test, self)
         @@app = nil
       end

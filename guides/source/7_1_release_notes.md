@@ -23,7 +23,7 @@ Major Features
 
 ### Generate Dockerfiles for new Rails applications
 
-[Default Docker support](https://github.com/rails/rails/pull/46762) to new rails applications.
+[Default Docker support](https://github.com/rails/rails/pull/46762) to new Rails applications.
 When generating a new application, Rails will now include Docker-related files in the application.
 
 These files serve as a foundational setup for deploying your Rails application in a
@@ -649,7 +649,7 @@ Please refer to the [Changelog][active-record] for detailed changes.
 
 *   Deprecate `config.active_record.suppress_multiple_database_warning`.
 
-*   Deprecate using `ActiveSupport::Duration` as an interpolated bind parameter in a SQL
+*   Deprecate using `ActiveSupport::Duration` as an interpolated bind parameter in an SQL
     string template.
 
 *   Deprecate `all_connection_pools` and make `connection_pool_list` more explicit.

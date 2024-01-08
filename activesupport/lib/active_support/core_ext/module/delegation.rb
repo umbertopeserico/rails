@@ -168,7 +168,7 @@ class Module
   #   Foo.new("Bar").name # raises NoMethodError: undefined method `name'
   #
   # The target method must be public, otherwise it will raise +NoMethodError+.
-  def delegate(*methods, to: nil, prefix: nil, allow_nil: nil, private: nil)
+  def delegate(*methods, to: nil, prefix: nil, allow_nil: nil, private: nil, as: nil)
     unless to
       raise ArgumentError, "Delegation needs a target. Supply a keyword argument 'to' (e.g. delegate :hello, to: :greeter)."
     end
@@ -190,6 +190,16 @@ class Module
     receiver = to.to_s
     receiver = "self.#{receiver}" if DELEGATION_RESERVED_METHOD_NAMES.include?(receiver)
 
+    explicit_receiver = false
+    receiver_class = if as
+      explicit_receiver = true
+      as
+    elsif to.is_a?(Module)
+      to.singleton_class
+    elsif receiver == "self.class"
+      singleton_class
+    end
+
     method_def = []
     method_names = []
 
@@ -205,21 +215,19 @@ class Module
         if /[^\]]=\z/.match?(method)
           "arg"
         else
-          method_object =
+          method_object = if receiver_class
             begin
-              if to.is_a?(Module)
-                to.method(method)
-              elsif receiver == "self.class"
-                method(method)
-              end
+              receiver_class.public_instance_method(method)
             rescue NameError
+              raise if explicit_receiver
               # Do nothing. Fall back to `"..."`
             end
+          end
 
           if method_object
             parameters = method_object.parameters
 
-            if (parameters.map(&:first) & [:opt, :rest, :keyreq, :key, :keyrest]).any?
+            if parameters.map(&:first).intersect?([:opt, :rest, :keyreq, :key, :keyrest])
               "..."
             else
               defn = parameters.filter_map { |type, arg| arg if type == :req }
@@ -328,9 +336,9 @@ class Module
         #{target}.respond_to?(name) || super
       end
 
-      def method_missing(method, *args, &block)
+      def method_missing(method, ...)
         if #{target}.respond_to?(method)
-          #{target}.public_send(method, *args, &block)
+          #{target}.public_send(method, ...)
         else
           begin
             super
@@ -347,7 +355,6 @@ class Module
           end
         end
       end
-      ruby2_keywords(:method_missing)
     RUBY
   end
 end
