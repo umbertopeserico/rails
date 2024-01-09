@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "active_support/callbacks"
+require "active_support/core_ext/object/with"
 require "active_support/core_ext/enumerable"
 require "active_support/core_ext/module/delegation"
 
@@ -124,22 +125,7 @@ module ActiveSupport
           end
         end
 
-        ActiveSupport::CodeGenerator.batch(singleton_class, __FILE__, __LINE__) do |owner|
-          names.each do |name|
-            owner.define_cached_method(name, namespace: :current_attributes_delegation) do |batch|
-              batch <<
-                "def #{name}" <<
-                "instance.#{name}" <<
-                "end"
-            end
-            owner.define_cached_method("#{name}=", namespace: :current_attributes_delegation) do |batch|
-              batch <<
-                "def #{name}=(value)" <<
-                "instance.#{name} = value" <<
-                "end"
-            end
-          end
-        end
+        singleton_class.delegate(*names.flat_map { |name| [name, "#{name}="] }, to: :instance, as: self)
       end
 
       # Calls this callback before #reset is called on the instance. Used for resetting external collaborators that depend on current values.
@@ -207,12 +193,8 @@ module ActiveSupport
     #       end
     #     end
     #   end
-    def set(set_attributes)
-      old_attributes = compute_attributes(set_attributes.keys)
-      assign_attributes(set_attributes)
-      yield
-    ensure
-      assign_attributes(old_attributes)
+    def set(attributes, &block)
+      with(**attributes, &block)
     end
 
     # Reset all attributes. Should be called before and after actions, when used as a per-request singleton.
@@ -221,14 +203,5 @@ module ActiveSupport
         self.attributes = {}
       end
     end
-
-    private
-      def assign_attributes(new_attributes)
-        new_attributes.each { |key, value| public_send("#{key}=", value) }
-      end
-
-      def compute_attributes(keys)
-        keys.index_with { |key| public_send(key) }
-      end
   end
 end

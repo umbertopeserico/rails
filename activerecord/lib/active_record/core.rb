@@ -73,7 +73,7 @@ module ActiveRecord
       end
       self.configurations = {}
 
-      # Returns fully resolved ActiveRecord::DatabaseConfigurations object
+      # Returns a fully resolved ActiveRecord::DatabaseConfigurations object.
       def self.configurations
         @@configurations
       end
@@ -697,6 +697,10 @@ module ActiveRecord
     end
 
     # Marks this record as read only.
+    #
+    #   customer = Customer.first
+    #   customer.readonly!
+    #   customer.save # Raises an ActiveRecord::ReadOnlyRecord
     def readonly!
       @readonly = true
     end
