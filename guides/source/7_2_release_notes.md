@@ -219,6 +219,8 @@ Please refer to the [Changelog][active-support] for detailed changes.
 
 *   Remove deprecated `config.active_support.disable_to_s_conversion`.
 
+*   Remove deprecated `config.active_support.remove_deprecated_time_with_zone_name`.
+
 ### Deprecations
 
 *   Deprecate `config.active_support.to_time_preserves_timezone`.
