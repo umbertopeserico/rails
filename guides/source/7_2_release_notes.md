@@ -215,6 +215,8 @@ Please refer to the [Changelog][active-support] for detailed changes.
 
 *   Remove deprecated `:pool_size` and `:pool_timeout` options for the cache storage.
 
+*   Remove deprecated support for `config.active_support.cache_format_version = 6.1`.
+
 ### Deprecations
 
 ### Notable changes
