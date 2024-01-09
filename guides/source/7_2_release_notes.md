@@ -221,6 +221,8 @@ Please refer to the [Changelog][active-support] for detailed changes.
 
 *   Remove deprecated `config.active_support.remove_deprecated_time_with_zone_name`.
 
+*   Remove deprecated `config.active_support.use_rfc4122_namespaced_uuids`.
+
 ### Deprecations
 
 *   Deprecate `config.active_support.to_time_preserves_timezone`.

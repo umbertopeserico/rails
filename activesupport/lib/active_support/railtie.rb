@@ -118,12 +118,7 @@ module ActiveSupport
 
     initializer "active_support.set_configs" do |app|
       app.config.active_support.each do |k, v|
-        if k == "use_rfc4122_namespaced_uuids"
-          ActiveSupport.deprecator.warn("config.active_support.use_rfc4122_namespaced_uuids is deprecated and will be removed in Rails 7.2.")
-        else
-          k = "#{k}="
-          ActiveSupport.public_send(k, v) if ActiveSupport.respond_to? k
-        end
+        ActiveSupport.public_send(k, v) if ActiveSupport.respond_to? k
       end
     end
 
