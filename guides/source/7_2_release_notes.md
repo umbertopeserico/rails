@@ -213,6 +213,8 @@ Please refer to the [Changelog][active-support] for detailed changes.
 
 *   Remove deprecated support for `config.active_support.cache_format_version = 6.1`.
 
+*   Remove deprecated constants `ActiveSupport::LogSubscriber::CLEAR` and `ActiveSupport::LogSubscriber::BOLD`.
+
 ### Deprecations
 
 *   Deprecate `config.active_support.to_time_preserves_timezone`.
