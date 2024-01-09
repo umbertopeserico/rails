@@ -215,6 +215,8 @@ Please refer to the [Changelog][active-support] for detailed changes.
 
 *   Remove deprecated constants `ActiveSupport::LogSubscriber::CLEAR` and `ActiveSupport::LogSubscriber::BOLD`.
 
+*   Remove deprecated support to bolding log text with positional boolean in `ActiveSupport::LogSubscriber#color`.
+
 ### Deprecations
 
 *   Deprecate `config.active_support.to_time_preserves_timezone`.
