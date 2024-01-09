@@ -1,3 +1,7 @@
+*   Remove deprecated `:pool_size` and `:pool_timeout` options for the cache storage.
+
+    *Rafael Mendonça França*
+
 *   Yield instance to `Object#with` block
 
     ```ruby

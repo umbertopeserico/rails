@@ -213,6 +213,8 @@ Please refer to the [Changelog][active-support] for detailed changes.
 
 ### Removals
 
+*   Remove deprecated `:pool_size` and `:pool_timeout` options for the cache storage.
+
 ### Deprecations
 
 ### Notable changes
