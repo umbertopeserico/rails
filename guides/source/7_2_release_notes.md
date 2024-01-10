@@ -223,6 +223,8 @@ Please refer to the [Changelog][active-support] for detailed changes.
 
 *   Remove deprecated `config.active_support.use_rfc4122_namespaced_uuids`.
 
+*   Remove deprecated support to passing `Dalli::Client` instances to `MemCacheStore`.
+
 ### Deprecations
 
 *   Deprecate `config.active_support.to_time_preserves_timezone`.
