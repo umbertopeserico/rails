@@ -102,7 +102,14 @@ module ActiveSupport
       end
 
       # Declares one or more attributes that will be given both class and instance accessor methods.
-      def attribute(*names)
+      #
+      # ==== Options
+      #
+      # * <tt>:default</tt> - The default value for the attributes. If the value
+      # is a proc or lambda, it will be called whenever an instance is
+      # constructed. Otherwise, the value will be duplicated with +#dup+.
+      # Default values are re-assigned when the attributes are reset.
+      def attribute(*names, default: nil)
         invalid_attribute_names = names.map(&:to_sym) & INVALID_ATTRIBUTE_NAMES
         if invalid_attribute_names.any?
           raise ArgumentError, "Restricted attribute names: #{invalid_attribute_names.join(", ")}"
@@ -126,6 +133,8 @@ module ActiveSupport
         end
 
         singleton_class.delegate(*names.flat_map { |name| [name, "#{name}="] }, to: :instance, as: self)
+
+        self.defaults = defaults.merge(names.index_with { default })
       end
 
       # Calls this callback before #reset is called on the instance. Used for resetting external collaborators that depend on current values.
@@ -164,23 +173,27 @@ module ActiveSupport
         end
 
         def method_missing(name, ...)
-          # Caches the method definition as a singleton method of the receiver.
-          #
-          # By letting #delegate handle it, we avoid an enclosure that'll capture args.
-          singleton_class.delegate name, to: :instance
-
-          send(name, ...)
+          instance.public_send(name, ...)
         end
 
         def respond_to_missing?(name, _)
-          super || instance.respond_to?(name)
+          instance.respond_to?(name) || super
+        end
+
+        def method_added(name)
+          return if name == :initialize
+          return unless public_method_defined?(name)
+          return if respond_to?(name, true)
+          singleton_class.delegate(name, to: :instance, as: self)
         end
     end
+
+    class_attribute :defaults, instance_writer: false, default: {}.freeze
 
     attr_accessor :attributes
 
     def initialize
-      @attributes = {}
+      @attributes = resolve_defaults
     end
 
     # Expose one or more attributes within a block. Old values are returned after the block concludes.
@@ -200,8 +213,15 @@ module ActiveSupport
     # Reset all attributes. Should be called before and after actions, when used as a per-request singleton.
     def reset
       run_callbacks :reset do
-        self.attributes = {}
+        self.attributes = resolve_defaults
       end
     end
+
+    private
+      def resolve_defaults
+        defaults.transform_values do |value|
+          Proc === value ? value.call : value.dup
+        end
+      end
   end
 end
